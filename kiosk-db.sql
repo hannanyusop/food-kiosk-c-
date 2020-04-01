@@ -23,19 +23,22 @@ CREATE TABLE IF NOT EXISTS `items` (
   `name` varchar(50) DEFAULT NULL,
   `is_available` int(11) DEFAULT 1,
   `price` float(10,2) DEFAULT 0.00,
+  `is_deleted` int(11) DEFAULT 0,
   `type` int(11) DEFAULT 1,
   PRIMARY KEY (`id`),
   UNIQUE KEY `code` (`code`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4;
 
--- Dumping data for table kiosk.items: ~5 rows (approximately)
+-- Dumping data for table kiosk.items: ~7 rows (approximately)
 /*!40000 ALTER TABLE `items` DISABLE KEYS */;
-INSERT INTO `items` (`id`, `code`, `name`, `is_available`, `price`, `type`) VALUES
-	(1, 'F01', 'NASI GORENG MAMAK', 1, 5.50, 1),
-	(2, 'F02', 'NASI GORENG KAMPUNG', 1, 6.00, 1),
-	(3, 'D01', 'AIR KOSONG', 1, 0.30, 2),
-	(4, 'D02', 'MILO AIS', 1, 2.50, 1),
-	(5, 'D03', 'MILO PANAS', 1, 2.00, 1);
+INSERT INTO `items` (`id`, `code`, `name`, `is_available`, `price`, `is_deleted`, `type`) VALUES
+	(1, 'F01', 'NASI GORENG MAMAK', 1, 0.00, 0, 0),
+	(2, 'F02', 'NASI GORENG KAMPUNG', 1, 6.00, 0, 1),
+	(3, 'D01', 'AIR KOSONG', 1, 0.30, 0, 2),
+	(4, 'D02', 'MILO AIS', 1, 2.50, 0, 1),
+	(5, 'D03', 'MILO PANAS', 1, 2.00, 0, 1),
+	(6, 'F4', 'kolok', 1, 5.00, 0, 0),
+	(7, 'D1', 'TEH O AIS', 1, 1.00, 0, 1);
 /*!40000 ALTER TABLE `items` ENABLE KEYS */;
 
 -- Dumping structure for table kiosk.orders
@@ -44,14 +47,17 @@ CREATE TABLE IF NOT EXISTS `orders` (
   `price` float(10,2) DEFAULT 0.00,
   `status` int(11) DEFAULT 1,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4;
 
--- Dumping data for table kiosk.orders: ~3 rows (approximately)
+-- Dumping data for table kiosk.orders: ~6 rows (approximately)
 /*!40000 ALTER TABLE `orders` DISABLE KEYS */;
 INSERT INTO `orders` (`id`, `price`, `status`) VALUES
 	(1, 6.00, 1),
 	(2, 2.00, 1),
-	(3, 8.00, 1);
+	(3, 8.00, 1),
+	(4, 5.50, 1),
+	(5, 7.00, 2),
+	(6, 7.00, 1);
 /*!40000 ALTER TABLE `orders` ENABLE KEYS */;
 
 -- Dumping structure for table kiosk.order_items
@@ -62,9 +68,9 @@ CREATE TABLE IF NOT EXISTS `order_items` (
   `price` float(10,2) DEFAULT 0.00,
   `notes` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4;
 
--- Dumping data for table kiosk.order_items: ~6 rows (approximately)
+-- Dumping data for table kiosk.order_items: ~11 rows (approximately)
 /*!40000 ALTER TABLE `order_items` DISABLE KEYS */;
 INSERT INTO `order_items` (`id`, `order_id`, `item_id`, `price`, `notes`) VALUES
 	(1, 0, 1, 5.50, 'EX NOTES'),
@@ -72,8 +78,28 @@ INSERT INTO `order_items` (`id`, `order_id`, `item_id`, `price`, `notes`) VALUES
 	(3, 2, 1, 5.50, 'EX NOTES'),
 	(4, 2, 5, 2.00, 'EX NOTES'),
 	(5, 3, 2, 6.00, 'EX NOTES'),
-	(6, 3, 5, 2.00, 'EX NOTES');
+	(6, 3, 5, 2.00, 'EX NOTES'),
+	(7, 4, 1, 5.50, 'EX NOTES'),
+	(8, 5, 1, 5.50, 'EX NOTES'),
+	(9, 5, 7, 1.50, 'EX NOTES'),
+	(10, 6, 1, 5.50, 'EX NOTES'),
+	(11, 6, 7, 1.50, 'EX NOTES');
 /*!40000 ALTER TABLE `order_items` ENABLE KEYS */;
+
+-- Dumping structure for table kiosk.staff
+CREATE TABLE IF NOT EXISTS `staff` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `username` varchar(50) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4;
+
+-- Dumping data for table kiosk.staff: ~1 rows (approximately)
+/*!40000 ALTER TABLE `staff` DISABLE KEYS */;
+INSERT INTO `staff` (`id`, `username`, `password`) VALUES
+	(1, 'manager', '1234');
+/*!40000 ALTER TABLE `staff` ENABLE KEYS */;
 
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
 /*!40014 SET FOREIGN_KEY_CHECKS=IF(@OLD_FOREIGN_KEY_CHECKS IS NULL, 1, @OLD_FOREIGN_KEY_CHECKS) */;

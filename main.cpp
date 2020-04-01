@@ -56,14 +56,77 @@ void updateItem();
 void endMenu();
 void newOrderList();
 void viewDailySale();
+void menuCustomer();
+void menuStaff();
+void endMenuStaff();
 
 int main()
 {
     system("cls");
     system("SELF ORDERING SYSTEM");
     system("color 0f");
+    int role;
 
     db_response::ConnectionFunction();
+
+    
+
+    headerLogo();
+
+    cout << "Please choose:" << endl;
+    cout << "1.Guest (For Customer)" << endl;
+    cout << "2. Login (For Staff)" << endl << "Selecttion :";
+    cin >> role;
+
+
+    if (role == 1) {
+        menuCustomer();
+    } else {
+
+        int attempt = 1;
+        bool auth = false;
+        string username, password;
+
+        headerLogo();
+
+        cout << "Notes : Maximum attempt 3" << endl;
+
+        do {
+            cout << "Please enter username:";
+            cin >> username;
+
+            cout << "Password:";
+            cin >> password;
+
+            string findbyid_query = "SELECT * FROM  staff WHERE username = '"+username+"' AND password='"+password+"'";
+            const char* qi = findbyid_query.c_str();
+            qstate = mysql_query(conn, qi);
+            
+            if (!qstate) {
+                res = mysql_store_result(conn);
+                int ttlRow = mysql_num_rows(res);
+
+                if (ttlRow > 0) {
+                    auth = true;
+                    menuStaff();
+
+                }
+                else {
+                    attempt++;
+                    cout << endl << "Invalid username/password (" << attempt << " attempt(s))" << endl;
+                }
+            }
+            else {
+                cout << endl << "Error MYSQL";
+            }
+        } while (auth == false && attempt <= 3);
+
+        main();
+    }
+
+}
+
+void menuCustomer() {
 
     int chooseOneFromMenu = 0;
     char exitSurity;
@@ -74,13 +137,59 @@ int main()
     cout << "1. New Order" << endl;
     cout << "2. View Order" << endl << endl;
 
+    cout << endl;
+    cout << "Selection :";
+    cin >> chooseOneFromMenu;
+
+    switch (chooseOneFromMenu)
+    {
+
+    case 1:
+        newOrder();
+        break;
+    case 2:
+        viewOrder();
+        break;
+    case 9:
+    ExitProgram:
+        cout << "Program terminating. Are you sure? (y/N): ";
+        cin >> exitSurity;
+        if (exitSurity == 'y' || exitSurity == 'Y') {
+  
+        }
+        else if (exitSurity == 'n' || exitSurity == 'N') {
+            system("cls");
+            menuCustomer();
+        }
+        else {
+            cout << "Next time choose after read the corresponding line." << endl;
+            goto ExitProgram;
+        }
+        break;
+    default:
+        cout << "Please choose between 1 - 2. Press Enter To Continue...";
+        _getch();
+        system("cls");
+        menuCustomer();
+        break;
+    }
+
+}
+
+void menuStaff() {
+
+    int chooseOneFromMenu = 0;
+    char exitSurity;
+
+    headerLogo();
+
     cout << "-------------------------------" << endl;
     cout << "            ADMIN PANEL        " << endl;
     cout << "-------------------------------" << endl;
-    cout << "3. Insert New Menu" << endl;
-    cout << "4. Update Menu" << endl;
-    cout << "5. View New Order" << endl;
-    cout << "6. View Daily Sale" << endl;
+    cout << "1. Insert New Menu" << endl;
+    cout << "2. Update Menu" << endl;
+    cout << "3. View New Order" << endl;
+    cout << "4. View Daily Sale" << endl;
 
     cout << endl;
     cout << "Selection :";
@@ -89,23 +198,16 @@ int main()
     switch (chooseOneFromMenu)
     {
 
-    case 1 :
-        newOrder();
-        break;
-    case 2 :
-        viewOrder();
-        break;
-
-    case 3 :
+    case 1:
         insertItem();
         break;
-    case 4 :
+    case 2:
         updateItem();
         break;
-    case 5 :
+    case 3:
         newOrderList();
         break;
-    case 6 :
+    case 4:
         viewDailySale();
         break;
     case 9:
@@ -113,11 +215,11 @@ int main()
         cout << "Program terminating. Are you sure? (y/N): ";
         cin >> exitSurity;
         if (exitSurity == 'y' || exitSurity == 'Y') {
-            return 0;
+
         }
         else if (exitSurity == 'n' || exitSurity == 'N') {
             system("cls");
-            main();
+            menuStaff();
         }
         else {
             cout << "Next time choose after read the corresponding line." << endl;
@@ -125,13 +227,12 @@ int main()
         }
         break;
     default:
-        cout << "Please choose between 1 - 7. Press Enter To Continue...";
+        cout << "Please choose between 1 - 4. Press Enter To Continue...";
         _getch();
         system("cls");
-        main();
+        menuStaff();
         break;
     }
-    return 0;
 }
 
 void newOrder() {
@@ -217,15 +318,14 @@ void newOrder() {
     const char* order_str = order_q.c_str();
     qstate = mysql_query(conn, order_str);
 
-    if (!qstate) {
 
-        //get last row id
-        string last_id_q = "SELECT id FROM orders ORDER by id DESC LIMIT 1";
-        const char* lid_str = last_id_q.c_str();
-        qstate = mysql_query(conn, lid_str);
-        res = mysql_store_result(conn);
-        row = mysql_fetch_row(res);
-    }
+
+    //get last row id
+    string last_id_q = "SELECT id FROM orders ORDER by id DESC LIMIT 1";
+    const char* lid_str = last_id_q.c_str();
+    qstate = mysql_query(conn, lid_str);
+    res = mysql_store_result(conn);
+    row = mysql_fetch_row(res);
 
 
     for (int i = 1; i <= 11; i++) {
@@ -283,6 +383,8 @@ void viewOrder() {
 
     } while (!res_found);
 
+    endMenu();
+
 }
 
 void printReceipt(string id) {
@@ -332,6 +434,8 @@ void printReceipt(string id) {
     }
     
 }
+
+//STAFF FUNCTION
 
 void insertItem() {
 
@@ -538,7 +642,7 @@ void updateItem() {
         }
     }
 
-    endMenu();
+    endMenuStaff();
 
 
 }
@@ -725,16 +829,22 @@ void viewDailySale() {
 
         string dt = to_string(year) + "-" + to_string(month) + "-" + to_string(day) + "";
 
-        //string daily_sale_str = "SELECT sum(price) FROM orders WHERE created_at = '" + dt + "' GROUP BY status";
-        //const char* daily_sale_q = daily_sale_str.c_str();
-        //mysql_query(conn, daily_sale_q);
-        //res = mysql_store_result(conn);
 
-        //row = mysql_fetch_row(res);
+        string daily_sale_str = "SELECT created_at,sum(price) as total FROM orders as o WHERE DATE(created_at) = '"+dt+"' group by day(o.created_at);";
+        const char* daily_sale_q = daily_sale_str.c_str();
+        mysql_query(conn, daily_sale_q);
+        res = mysql_store_result(conn);
 
-        daily_sale[day] = stof("100");
+        int ttlRow = mysql_num_rows(res);
+
+        if (ttlRow > 0) {
+            row = mysql_fetch_row(res);
+            daily_sale[day] = stof(row[1]);
+        } else {
+            daily_sale[day] = stof("0");
+        }
+
         date_str[day] = dt;
-
         day++;
 
     }
@@ -761,22 +871,37 @@ void viewDailySale() {
 
     t.setAlignment(2, TextTable::Alignment::RIGHT);
     cout << t;
+
+    endMenuStaff();
 }
 
 void endMenu() {
 
     char choose;
     ExitMenu:
+    cout << "Press 'm' to Menu and any other key to Exit: ";
+    cin >> choose;
+    if (choose == 'm' || choose == 'M') {
+        menuCustomer();
+    } else {
+        main();
+    }
+}
+
+void endMenuStaff() {
+
+    char choose;
+ExitMenu:
     cout << "Press 'm' to Menu, 'e' to edit another item and any other key to Exit: ";
     cin >> choose;
     if (choose == 'm' || choose == 'M') {
-        main();
+        menuStaff();
     }
     else if (choose == 'e' || choose == 'E') {
         updateItem();
     }
     else {
-        exit(0);
+        main();
     }
 }
 
