@@ -75,7 +75,7 @@ int main()
 
     cout << "Please choose:" << endl;
     cout << "1.Guest (For Customer)" << endl;
-    cout << "2. Login (For Staff)" << endl << "Selecttion :";
+    cout << "2. Login (For Staff)" << endl << "Selection :";
     cin >> role;
 
 
