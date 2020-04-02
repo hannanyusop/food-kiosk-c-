@@ -59,6 +59,9 @@ void viewDailySale();
 void menuCustomer();
 void menuStaff();
 void endMenuStaff();
+void addStaff();
+void resetPassword();
+void viewStaff();
 
 int main()
 {
@@ -135,7 +138,8 @@ void menuCustomer() {
 
     cout << "Please Select Menu" << endl;
     cout << "1. New Order" << endl;
-    cout << "2. View Order" << endl << endl;
+    cout << "2. View Order" << endl;
+    cout << "3. Back" << endl;
 
     cout << endl;
     cout << "Selection :";
@@ -149,6 +153,10 @@ void menuCustomer() {
         break;
     case 2:
         viewOrder();
+        break;
+
+    case 3 :
+        main();
         break;
     case 9:
     ExitProgram:
@@ -190,6 +198,9 @@ void menuStaff() {
     cout << "2. Update Menu" << endl;
     cout << "3. View New Order" << endl;
     cout << "4. View Daily Sale" << endl;
+    cout << "5. View All Staff" << endl;
+    cout << "6. Add Staff" << endl;
+
 
     cout << endl;
     cout << "Selection :";
@@ -209,6 +220,12 @@ void menuStaff() {
         break;
     case 4:
         viewDailySale();
+        break;
+    case 5 :
+        viewStaff();
+        break;
+    case 6 : 
+        addStaff();
         break;
     case 9:
     ExitProgram:
@@ -508,7 +525,7 @@ void insertItem() {
         ExitMenu:
         cout << "Press any key to back main menu?=>";
         cin >> choose;
-        main();
+        menuStaff();
 
     }else{ 
         cout << "Mysql error!" << endl;
@@ -873,6 +890,244 @@ void viewDailySale() {
     cout << t;
 
     endMenuStaff();
+}
+
+void addStaff() {
+
+    string username, password,is_admin = "0";
+    char selection;
+    bool unique = false;
+
+    headerLogo();
+
+    cout << ">>    ADD STAFF   <<" << endl << endl;
+
+    do {
+
+        cout << "Username:";
+        cin >> username;
+
+        string user_str = "SELECT * FROM staff WHERE username='" + username + "'";
+        const char* user_q = user_str.c_str();
+        mysql_query(conn, user_q);
+        res = mysql_store_result(conn);
+        int ttl_row = mysql_num_rows(res);
+
+        if (ttl_row == 0) {
+            unique = true;
+        } else {
+            cout << "Username already exist! Please enter another username." << endl;
+        } 
+
+    } while (!unique);
+
+    cout << "Password :";
+    cin >> password;
+
+    char name[100] = { 0 };
+
+    cout << "Name :";
+    cin.getline(name, 100);
+
+    cout << "Set as admin? (Y/y) :";
+    cin >> selection;
+
+    if (selection == 'y' || selection == 'Y') {
+        is_admin = 1;
+    }
+    
+    string insert_str = "INSERT INTO staff (username,password,name,is_admin) VALUES ('" + username + "','" + password + "', '" + name + "', '" + is_admin + "')";
+    const char* insert_q = insert_str.c_str();
+    qstate = mysql_query(conn, insert_q);
+
+    if (!qstate) {
+        cout << "Data inserted!";
+    } else {
+        cout << "MySQL error!";
+    }
+
+    endMenuStaff();
+    
+}
+
+void viewStaff() {
+
+    system("cls");
+
+    // Variables
+    string username = "",
+        password = "",
+        name = "",
+        is_admin = "",
+        items[500],
+        new_username, new_password, new_name, new_is_admin;
+
+    char choose;
+    int itemId;
+    bool HaveException = false;
+    bool NotInDatabase = false;
+    int indexForId = 0;
+
+    headerLogo();
+    cout << ">>        Staff List      <<" << endl;
+
+    qstate = mysql_query(conn, "SELECT id,username,name,is_admin FROM staff");
+    if (!qstate) {
+        res = mysql_store_result(conn);
+
+        TextTable t('-', '|', '+');
+
+        t.add("STAFF NO");
+        t.add("USERNAME");
+        t.add("NAME");
+        t.add("ADMIN");
+        t.endOfRow();
+
+        while ((row = mysql_fetch_row(res))) {
+
+            t.add(row[0]);
+            t.add(row[1]);
+            t.add(row[2]);
+
+            if (row[3] == "1") {
+                t.add("YES");
+            }
+            else {
+                t.add("NO");
+            }
+            t.endOfRow();
+
+            items[indexForId] = row[0];
+            indexForId++;
+        }
+
+        t.setAlignment(3, TextTable::Alignment::RIGHT);
+        cout << t;
+
+        cout << "--------------------------------" << endl << endl;
+
+    }
+    else {
+        cout << "Query Execution Problem!" << mysql_errno(conn) << endl;
+    }
+
+    try {
+        cout << "Enter Staff No: (Enter 0 to exit) : =>";
+        cin >> itemId;
+        cout << endl;
+
+        if (itemId == 0) {
+            menuStaff();
+        }
+    }
+    catch (exception e) {
+        cout << "Please Enter a valid NUMBER." << endl;
+        HaveException = true;
+    }
+
+    if (HaveException == false)
+    {
+        stringstream streamid;
+        string strid;
+        streamid << itemId;
+        streamid >> strid;
+
+        for (int i = 0; i < indexForId; i++)
+        {
+            if (strid != items[i]) {
+                NotInDatabase = true;
+            }
+            else {
+                NotInDatabase = false;
+                break;
+            }
+        }
+
+        if (NotInDatabase == false) {
+
+            string findbyid_query = "SELECT id,username,password,name,is_admin FROM staff WHERE id='"+strid+"'";
+            const char* qi = findbyid_query.c_str();
+            qstate = mysql_query(conn, qi);
+
+            if (!qstate) {
+                res = mysql_store_result(conn);
+                while ((row = mysql_fetch_row(res))) {
+                    username = row[1];
+                    password = row[2];
+                    name = row[3];
+                    is_admin = row[4];
+                }
+            }
+
+            else {
+                cout << "Query Execution Problem!" << mysql_errno(conn) << endl;
+            }
+
+            cin.ignore(1, '\n');
+
+            cout << endl << "Enter Username (Enter 'xn' to not change): ";
+            cin >> new_username;
+            if (new_username == "xn") {
+                new_username = username;
+            }
+
+            cout << endl << "Enter Password (Enter 'xn' to not change): ";
+            cin >> new_password;
+            if (new_password == "xn") {
+                new_password = password;
+            }
+
+            cout << endl << "Enter Name (Enter 'xn' to not change): ";
+            getline(cin, new_name);
+            if (new_name == "xn") {
+                new_name = name;
+            }
+
+            if (is_admin == "1") {
+                cout << "Staff is admin.";
+            }
+            else {
+                cout << "Staff is not admin";
+            }
+
+
+            string acc_selection;
+            cout << endl << "Enter (Y/y) to switch account type or 'xn' to not change";
+            cin >> acc_selection;
+
+            if (acc_selection == "Y" || acc_selection == "y") {
+                
+                if (is_admin == "1") {
+                    new_is_admin == "0";
+                }
+                else {
+                    new_is_admin = "1";
+                }
+            }
+            else {
+                new_is_admin = is_admin;
+            }
+
+            string update_query = "UPDATE items SET username='"+new_username+"',password='"+new_password+"',name='"+new_name+"',is_admin='"+new_is_admin+"' WHERE id='" + strid + "'";
+            const char* qu = update_query.c_str();
+            qstate = mysql_query(conn, qu);
+
+            if (!qstate) {
+                cout << endl << "Successfully Saved In Database." << endl;
+            }
+            else {
+                cout << "Failed To Update!" << mysql_errno(conn) << endl;
+            }
+
+        }
+        else {
+            cout << "Item Not Found in database." << endl;
+        }
+    }
+
+    endMenuStaff();
+
+
 }
 
 void endMenu() {
