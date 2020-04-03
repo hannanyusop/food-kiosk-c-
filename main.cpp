@@ -62,6 +62,7 @@ void endMenuStaff();
 void addStaff();
 void resetPassword();
 void viewStaff();
+void setting();
 
 int main()
 {
@@ -136,6 +137,16 @@ void menuCustomer() {
 
     headerLogo();
 
+    mysql_query(conn, "SELECT * FROM settings");
+    res = mysql_store_result(conn);
+    row = mysql_fetch_row(res);
+
+    string happy_hour_active = row[0], discount_rate = row[1], new_hha, new_dr;
+
+    if (happy_hour_active == "1") {
+        cout << endl << "--- Enjoy Happy Hour With Discount " + discount_rate + "% ---" << endl << endl;
+    }
+
     cout << "Please Select Menu" << endl;
     cout << "1. New Order" << endl;
     cout << "2. View Order" << endl;
@@ -200,6 +211,7 @@ void menuStaff() {
     cout << "4. View Daily Sale" << endl;
     cout << "5. View All Staff" << endl;
     cout << "6. Add Staff" << endl;
+    cout << "7. System Setting" << endl;
 
 
     cout << endl;
@@ -227,6 +239,9 @@ void menuStaff() {
     case 6 : 
         addStaff();
         break;
+    case 7 :
+        setting();
+        break;
     case 9:
     ExitProgram:
         cout << "Program terminating. Are you sure? (y/N): ";
@@ -244,7 +259,7 @@ void menuStaff() {
         }
         break;
     default:
-        cout << "Please choose between 1 - 4. Press Enter To Continue...";
+        cout << "Please choose between 1 - 6. Press Enter To Continue...";
         _getch();
         system("cls");
         menuStaff();
@@ -255,6 +270,12 @@ void menuStaff() {
 void newOrder() {
 
     system("cls");
+
+    mysql_query(conn, "SELECT * FROM settings");
+    res = mysql_store_result(conn);
+    row = mysql_fetch_row(res);
+
+    string happy_hour_active = row[0], discount_rate = row[1];
 
     int x = 1, orderItemId[20] = { NULL };
     string code = "", orderItemPrice[20];
@@ -317,8 +338,12 @@ void newOrder() {
 
         
 
-        cout << "Add other item?(Y/y) or (N/n)" << endl;
+        cout << "Add other item?(Y/y) or (N/n) or 'x' to cancel'" << endl;
         cin >> again;
+
+        if (again == 'x') {
+            menuCustomer();
+        }
 
 
     } while ((again == 'Y') || (again == 'y'));
@@ -330,12 +355,23 @@ void newOrder() {
 
     system("cls");
 
+    //discount
+
+    int discount = 0;
+    float after_discount;
+
+    if (happy_hour_active == "1") {
+        discount = stoi(discount_rate);
+        after_discount = ttl_price - (discount / 100 * ttl_price);
+    }
+    else {
+        after_discount = ttl_price;
+    }
+
     //insert into order
-    string order_q = "INSERT INTO orders(price, status) values ('" + to_string(ttl_price) + "', 1)";
+    string order_q = "INSERT INTO orders(price, status, discount_rate, after_discount) values ('" + to_string(ttl_price) + "', 1, '"+to_string(discount)+"', '"+to_string(after_discount)+"')";
     const char* order_str = order_q.c_str();
     qstate = mysql_query(conn, order_str);
-
-
 
     //get last row id
     string last_id_q = "SELECT id FROM orders ORDER by id DESC LIMIT 1";
@@ -344,6 +380,7 @@ void newOrder() {
     res = mysql_store_result(conn);
     row = mysql_fetch_row(res);
 
+    string order_id = row[0];
 
     for (int i = 1; i <= 11; i++) {
 
@@ -360,7 +397,13 @@ void newOrder() {
         }
     }
 
-    endMenu();
+
+    printReceipt(order_id);
+
+    cout << endl << "Your order No is : #" << order_id << endl << "Enter any key to continue =>";
+    cin >> order_id;
+
+    menuCustomer();
 }
 
 void viewOrder() {
@@ -409,8 +452,7 @@ void printReceipt(string id) {
     int indexForId = 0;
     string items[5000];
 
-
-    string order_q = "SELECT price,status FROM orders WHERE id='"+id+"'";
+    string order_q = "SELECT price,status,discount_rate,after_discount,created_at FROM orders WHERE id='"+id+"'";
     const char* order_str = order_q.c_str();
     qstate = mysql_query(conn, order_str);
     res = mysql_store_result(conn);
@@ -418,14 +460,17 @@ void printReceipt(string id) {
 
     string o_status = row[1],
         o_price = row[0],
+        discount_rate = row[2],
+        after_discount = row[3],
+        dt = row[4],
         status[2] = { "On Going", "Ready" };
-
 
     headerLogo();
     cout << "===================================" << endl;
     cout << "       RECEIPT #"+ id + "      " << endl << endl;
 
-    cout << "Order Status :" + status[1] << endl;
+    cout << "Order Status :" + status[stoi(row[2])] << endl;
+    cout << "Time / Date : " << dt << endl;
 
     string items_q = "SELECT oi.id,i.code,i.name,oi.price FROM order_items AS oi LEFT JOIN items AS i ON i.id=oi.item_id WHERE order_id='" + id + "'";
 
@@ -441,8 +486,10 @@ void printReceipt(string id) {
             items[indexForId] = row[0];
             indexForId++;
         }
+        cout << endl << endl << "\t TOTAL :RM " << o_price;
+        cout << endl << "\t DISCOUNT : " << discount_rate << "%";
         cout << endl << "\t ================" << endl;
-        cout << "\t TOTAL :RM " << o_price;
+        cout << "\t  :RM " << after_discount;
         cout << endl << "\t ================" << endl << endl;
 
         cout << "===================================" << endl;
@@ -1128,6 +1175,101 @@ void viewStaff() {
     endMenuStaff();
 
 
+}
+
+void setting() {
+
+    headerLogo();
+
+    mysql_query(conn, "SELECT * FROM settings");
+    res = mysql_store_result(conn);
+    row = mysql_fetch_row(res);
+
+    string happy_hour_active = row[0], discount_rate = row[1], new_hha, new_dr;
+
+    TextTable t('-', '|', '+');
+
+    t.add("HAPPY HOUR");
+    if (happy_hour_active == "1") {
+        t.add("ACTIVE");
+    } else {
+        t.add("INACTIVE");
+    }
+    t.endOfRow();
+
+    t.add("DISCOUNT RATE(&)");
+    t.add(discount_rate);
+    t.endOfRow();
+    t.setAlignment(3, TextTable::Alignment::RIGHT);
+    cout << t;
+
+    string selection,new_hho,new_rate;
+    cout << "Enter (Y/y) to update or other to back Menu. : =>";
+    cin >> selection;
+
+    if (selection == "y" || selection == "Y") {
+
+        new_hho = happy_hour_active;
+
+        if (happy_hour_active == "1") {
+
+            cout << "Deactivate Happy Hour Status? Enter (Y/y) or (N/n). =>";
+            cin >> selection;
+            
+            if (selection == "y" || selection == "Y") {
+                new_hho = "0";
+            }
+        } else {
+            cout << "Activate Happy Hour Status? Enter (Y/y) or (N/n). =>";
+            cin >> selection;
+
+            if (selection == "y" || selection == "Y") {
+                
+                new_hho = "1";
+            }
+        }
+
+        cout << "Current rate :" << discount_rate << "%, Enter new value to update or 'xn' to skip. =>";
+        cin >> new_rate;
+
+        if (new_rate == "xn" || new_rate == "XN") {
+
+        }
+        else {
+
+
+            
+            try {
+                int x = stoi(new_rate);
+
+                if (x < 0 || x > 100) {
+                    cout << "Invalid input. Discount rate not changed." << endl;
+                    new_rate = discount_rate;
+                }
+            }
+            catch (exception e) {
+                cout << "Invalid rate input";
+                new_rate = discount_rate;
+            }
+        }
+
+        string update_str = "UPDATE settings SET happy_hour_active='"+ new_hho +"', discount_rate='"+new_rate+"'";
+        const char* update_q = update_str.c_str();
+        qstate = mysql_query(conn, update_q);
+
+        if (!qstate) {
+            cout << "Setting updated!";
+        }
+        else {
+            cout << "Setting failed to update!";
+            cout << "Enter any key to continue. =>";
+            cin >> selection;
+        }
+        setting();
+    } else {
+
+        menuStaff();
+    }
 }
 
 void endMenu() {

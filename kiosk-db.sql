@@ -44,20 +44,16 @@ INSERT INTO `items` (`id`, `code`, `name`, `is_available`, `price`, `is_deleted`
 -- Dumping structure for table kiosk.orders
 CREATE TABLE IF NOT EXISTS `orders` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `price` float(10,2) DEFAULT 0.00,
+  `price` float DEFAULT 0,
   `status` int(11) DEFAULT 1,
+  `discount_rate` int(11) DEFAULT 0,
+  `after_discount` float DEFAULT 0,
+  `created_at` datetime DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Dumping data for table kiosk.orders: ~6 rows (approximately)
+-- Dumping data for table kiosk.orders: ~0 rows (approximately)
 /*!40000 ALTER TABLE `orders` DISABLE KEYS */;
-INSERT INTO `orders` (`id`, `price`, `status`) VALUES
-	(1, 6.00, 1),
-	(2, 2.00, 1),
-	(3, 8.00, 1),
-	(4, 5.50, 1),
-	(5, 7.00, 2),
-	(6, 7.00, 1);
 /*!40000 ALTER TABLE `orders` ENABLE KEYS */;
 
 -- Dumping structure for table kiosk.order_items
@@ -68,37 +64,40 @@ CREATE TABLE IF NOT EXISTS `order_items` (
   `price` float(10,2) DEFAULT 0.00,
   `notes` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Dumping data for table kiosk.order_items: ~11 rows (approximately)
+-- Dumping data for table kiosk.order_items: ~0 rows (approximately)
 /*!40000 ALTER TABLE `order_items` DISABLE KEYS */;
-INSERT INTO `order_items` (`id`, `order_id`, `item_id`, `price`, `notes`) VALUES
-	(1, 0, 1, 5.50, 'EX NOTES'),
-	(2, 0, 2, 6.00, 'EX NOTES'),
-	(3, 2, 1, 5.50, 'EX NOTES'),
-	(4, 2, 5, 2.00, 'EX NOTES'),
-	(5, 3, 2, 6.00, 'EX NOTES'),
-	(6, 3, 5, 2.00, 'EX NOTES'),
-	(7, 4, 1, 5.50, 'EX NOTES'),
-	(8, 5, 1, 5.50, 'EX NOTES'),
-	(9, 5, 7, 1.50, 'EX NOTES'),
-	(10, 6, 1, 5.50, 'EX NOTES'),
-	(11, 6, 7, 1.50, 'EX NOTES');
 /*!40000 ALTER TABLE `order_items` ENABLE KEYS */;
+
+-- Dumping structure for table kiosk.settings
+CREATE TABLE IF NOT EXISTS `settings` (
+  `happy_hour_active` int(11) DEFAULT 0,
+  `discount_rate` int(11) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Dumping data for table kiosk.settings: ~0 rows (approximately)
+/*!40000 ALTER TABLE `settings` DISABLE KEYS */;
+INSERT INTO `settings` (`happy_hour_active`, `discount_rate`) VALUES
+	(1, 30);
+/*!40000 ALTER TABLE `settings` ENABLE KEYS */;
 
 -- Dumping structure for table kiosk.staff
 CREATE TABLE IF NOT EXISTS `staff` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `username` varchar(50) NOT NULL,
   `password` varchar(255) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `is_admin` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4;
 
--- Dumping data for table kiosk.staff: ~1 rows (approximately)
+-- Dumping data for table kiosk.staff: ~2 rows (approximately)
 /*!40000 ALTER TABLE `staff` DISABLE KEYS */;
-INSERT INTO `staff` (`id`, `username`, `password`) VALUES
-	(1, 'manager', '1234');
+INSERT INTO `staff` (`id`, `username`, `password`, `name`, `is_admin`) VALUES
+	(1, 'manager', '1234', 'AL MANAGER HUSAIN', 0),
+	(2, 'admin', '1', '', 0);
 /*!40000 ALTER TABLE `staff` ENABLE KEYS */;
 
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
