@@ -14,7 +14,9 @@
 using namespace std;
 
 
-int qstate;
+int qstate, user_id;
+bool is_manager = false;
+string auth_name;
 MYSQL* conn;
 MYSQL_ROW row;
 MYSQL_RES* res;
@@ -51,18 +53,20 @@ void newOrder();
 void headerLogo();
 void printReceipt(string);
 void viewOrder();
+void printReceipt(string);
 void insertItem();
 void updateItem();
 void endMenu();
 void newOrderList();
-void viewDailySale();
+void viewMonthlySale();
 void menuCustomer();
 void menuStaff();
 void endMenuStaff();
 void addStaff();
-void resetPassword();
 void viewStaff();
 void setting();
+void checkManager();
+void logout();
 
 int main()
 {
@@ -102,16 +106,26 @@ int main()
             cout << "Password:";
             cin >> password;
 
-            string findbyid_query = "SELECT * FROM  staff WHERE username = '"+username+"' AND password='"+password+"'";
+            string findbyid_query = "SELECT id,username,password,is_manager,name FROM  staff WHERE username = '"+username+"' AND password='"+password+"'";
             const char* qi = findbyid_query.c_str();
             qstate = mysql_query(conn, qi);
             
             if (!qstate) {
                 res = mysql_store_result(conn);
                 int ttlRow = mysql_num_rows(res);
+                row = mysql_fetch_row(res);
 
                 if (ttlRow > 0) {
                     auth = true;
+
+                    auth_name = row[4];
+                  
+                    is_manager == false;
+                    //check if manager
+                    if (stoi(row[3]) == 1) {
+                        is_manager = true;
+                    }
+
                     menuStaff();
 
                 }
@@ -202,16 +216,23 @@ void menuStaff() {
 
     headerLogo();
 
+    cout << "Hye!" << auth_name << "," << endl << endl;
     cout << "-------------------------------" << endl;
     cout << "            ADMIN PANEL        " << endl;
     cout << "-------------------------------" << endl;
-    cout << "1. Insert New Menu" << endl;
-    cout << "2. Update Menu" << endl;
-    cout << "3. View New Order" << endl;
-    cout << "4. View Daily Sale" << endl;
-    cout << "5. View All Staff" << endl;
-    cout << "6. Add Staff" << endl;
-    cout << "7. System Setting" << endl;
+    cout << "1. View New Order" << endl;
+
+    if (is_manager) {
+        cout << "2. Update Menu" << endl;
+        cout << "3. Insert New Menu" << endl;
+        cout << "4. View Monthly Sale" << endl;
+        cout << "5. View All Staff" << endl;
+        cout << "6. Add Staff" << endl;
+        cout << "7. System Setting" << endl;
+    }
+
+    cout << "8. Logout" << endl;
+
 
 
     cout << endl;
@@ -222,16 +243,16 @@ void menuStaff() {
     {
 
     case 1:
-        insertItem();
+        newOrderList();
         break;
     case 2:
         updateItem();
         break;
     case 3:
-        newOrderList();
+        insertItem();
         break;
     case 4:
-        viewDailySale();
+        viewMonthlySale();
         break;
     case 5 :
         viewStaff();
@@ -241,6 +262,10 @@ void menuStaff() {
         break;
     case 7 :
         setting();
+        break;
+
+    case 8 :
+        logout();
         break;
     case 9:
     ExitProgram:
@@ -358,11 +383,11 @@ void newOrder() {
     //discount
 
     int discount = 0;
-    float after_discount;
+    double after_discount;
 
     if (happy_hour_active == "1") {
-        discount = stoi(discount_rate);
-        after_discount = ttl_price - (discount / 100 * ttl_price);
+        discount = stof(discount_rate);
+        after_discount = (double)ttl_price - (discount/(double)100 * (double)ttl_price);
     }
     else {
         after_discount = ttl_price;
@@ -396,7 +421,6 @@ void newOrder() {
             break; // exit from loop;
         }
     }
-
 
     printReceipt(order_id);
 
@@ -501,216 +525,6 @@ void printReceipt(string id) {
 
 //STAFF FUNCTION
 
-void insertItem() {
-
-    headerLogo();
-    cout << " >>    ADD MENU     <<" << endl << endl;
-
-    string code;
-    char name[100] = { 0 };
-    float price;
-    int type;
-    bool proceed = false;
-
-
-    //select type
-    do {
-
-        cout << "Select type :" << endl;
-        cout << "1. Food" << endl;
-        cout << "2. Drink" << endl;
-        cout << endl << "Selection : ";
-        cin >> type;
-
-        if (type == 1 || type == 2) {
-
-            proceed = true;
-
-            //generate code
-            if (type == 1) {
-
-                //count total food
-                qstate = mysql_query(conn, "SELECT count(id) as total FROM items WHERE type=1");
-
-                res = mysql_store_result(conn);
-                row = mysql_fetch_row(res);
-
-                string total = row[0];
-                code = "F" + total;
-             
-            }else if(type == 2) {
-
-                //count total drink
-                qstate = mysql_query(conn, "SELECT count(id) as total FROM items WHERE type=2");
-
-                res = mysql_store_result(conn);
-                row = mysql_fetch_row(res);
-
-                string total = row[0];
-                code = "D" + total;
-            }
-        }
-
-    } while (!proceed);
-
-    cout << "Name :";
-    cin.getline(name, 100);
-
-    price = NULL;
-    cout << "Insert Price: RM ";
-    cin >> price;
-
-
-    string item_q = "INSERT INTO items (code, name, is_available, price, is_deleted, type) VALUES ('"+code+"', '"+name+"',1, '"+ to_string(price) +"', 0,'"+to_string(type)+"')";
-    const char* item_str = item_q.c_str();
-    qstate = mysql_query(conn, item_str);
-
-    if (!qstate) {
-        cout << "New menu inserted!" << endl;
-
-        char choose;
-        ExitMenu:
-        cout << "Press any key to back main menu?=>";
-        cin >> choose;
-        menuStaff();
-
-    }else{ 
-        cout << "Mysql error!" << endl;
-    }
-
-}
-
-void updateItem() {
-
-    system("cls");
-
-    // Variables
-    string code = "",
-        name = "",
-        price = "",
-        is_deleted = "",
-        type = "",
-        items[500],
-        new_name, new_price, new_type;
-
-    char choose;
-    int itemId;
-    bool HaveException = false;
-    bool NotInDatabase = false;
-    int indexForId = 0;
-
-    headerLogo();
-    cout << ">>        EDIT MENU      <<" << endl;
-
-    qstate = mysql_query(conn, "SELECT id,code,name,price FROM items WHERE is_deleted = 0");
-    if (!qstate) {
-        res = mysql_store_result(conn);
-
-        cout << "--------------------------------" << endl;
-        cout << "NO |\tCODE |\tPRICE |\tNAME" << endl;
-        cout << "--------------------------------" << endl;
-
-        while ((row = mysql_fetch_row(res))) {
-            cout << row[0] << " |\t" <<row[1] << " |\tRM" << row[3] <<" |\t" << row[2] << endl;
-            items[indexForId] = row[0];
-            indexForId++;
-        }
-
-        cout << "--------------------------------" << endl << endl;
-
-    } else {
-        cout << "Query Execution Problem!" << mysql_errno(conn) << endl;
-    }
-
-    try {
-        cout << "Enter Item No: ";
-        cin >> itemId;
-        cout << endl;
-    } catch (exception e) {
-        cout << "Please Enter a valid NUMBER." << endl;
-        HaveException = true;
-    }
-
-    if (HaveException == false)
-    {
-        stringstream streamid;
-        string strid;
-        streamid << itemId;
-        streamid >> strid;
-
-        for (int i = 0; i < indexForId; i++)
-        {
-            if (strid != items[i]){
-                NotInDatabase = true;
-            }else {
-                NotInDatabase = false;
-                break;
-            }
-        }
-
-        if (NotInDatabase == false) {
-
-            string findbyid_query = "SELECT id,code,name,price,type FROM items WHERE id='"+ strid +"' AND is_deleted=0";
-            const char* qi = findbyid_query.c_str();
-            qstate = mysql_query(conn, qi);
-
-            if (!qstate){
-                res = mysql_store_result(conn);
-                while ((row = mysql_fetch_row(res))) {
-                    code = row[1];
-                    name = row[2];
-                    price = row[3];
-                    type = row[4];
-                }
-            }else{
-                cout << "Query Execution Problem!" << mysql_errno(conn) << endl;
-            }
-
-            cin.ignore(1, '\n');
-
-            cout << "Enter Name (Enter 'xn' to not change): ";
-            getline(cin, new_name);
-            if (new_name == "xn") {
-                new_name  = name;
-            }
-
-            cout << "Enter Price (Enter 'xn' to not change): ";
-            getline(cin, new_price);
-            if (type == "xn") {
-                new_price = price;
-            }
-
-            cout << "Enter Type:" << endl;
-            cout << "1 => FOOD" << endl;
-            cout << "2 => DRINK" << endl;
-            cout << "xn => Not change" << endl;
-            cout << "Type :";
-
-            getline(cin, new_type);
-            if (type == "xn") {
-                new_type = type;
-            }
-
-            string update_query = "UPDATE items SET name='"+new_name+"', price='"+new_price+"',type='"+new_type+"' WHERE id='"+ strid +"'";
-            const char* qu = update_query.c_str();
-            qstate = mysql_query(conn, qu);
-
-            if (!qstate){
-                cout << endl << "Successfully Saved In Database." << endl;
-            }else {
-                cout << "Failed To Update!" << mysql_errno(conn) << endl;
-            }
-
-        }else {
-            cout << "Item Not Found in database." << endl;
-        }
-    }
-
-    endMenuStaff();
-
-
-}
-
 void newOrderList() {
 
     string
@@ -799,23 +613,10 @@ void newOrderList() {
                 res = mysql_store_result(conn);
 
                 headerLogo();
-
-                cout << "ORDER NO. : #" << order_id << endl << endl;
-            
-
-                cout << "CODE\tPRICE\tNAME\n" << endl;
-
-                while ((row = mysql_fetch_row(res)))
-                {
-                    cout << row[1] << "\tRM" << row[3] << "\t" << row[2] << endl;
-                }
-                cout << endl << "\t ================" << endl;
-                cout << "\t TOTAL :RM " << order[2];
-                cout << endl << "\t ================" << endl << endl;
-
-
+                printReceipt(order_id);
                 
                 string selection;
+
                 do {
 
                     //mark as complete
@@ -836,7 +637,6 @@ void newOrderList() {
                     Sleep(5);
 
                 }
-
             }
             else {
                 cout << "Order Not Found in database." << endl;
@@ -861,17 +661,242 @@ void newOrderList() {
 
 }
 
-void viewDailySale() {
+// MANAGET FUNCTION
 
+void insertItem() {
+
+
+    checkManager();
+
+    headerLogo();
+    cout << " >>    ADD MENU     <<" << endl << endl;
+
+    string code;
+    char name[100] = { 0 };
+    float price;
+    int type;
+    bool proceed = false;
+
+
+    //select type
+    do {
+
+        cout << "Select type :" << endl;
+        cout << "1. Food" << endl;
+        cout << "2. Drink" << endl;
+        cout << endl << "Selection : ";
+        cin >> type;
+
+        if (type == 1 || type == 2) {
+
+            proceed = true;
+
+            //generate code
+            if (type == 1) {
+
+                //count total food
+                qstate = mysql_query(conn, "SELECT count(id) as total FROM items WHERE type=1");
+
+                res = mysql_store_result(conn);
+                row = mysql_fetch_row(res);
+
+                string total = row[0];
+                code = "F" + total;
+
+            }
+            else if (type == 2) {
+
+                //count total drink
+                qstate = mysql_query(conn, "SELECT count(id) as total FROM items WHERE type=2");
+
+                res = mysql_store_result(conn);
+                row = mysql_fetch_row(res);
+
+                string total = row[0];
+                code = "D" + total;
+            }
+        }
+
+    } while (!proceed);
+
+    cout << "Name :";
+    cin.getline(name, 100);
+
+    price = NULL;
+    cout << "Insert Price: RM ";
+    cin >> price;
+
+
+    string item_q = "INSERT INTO items (code, name, is_available, price, is_deleted, type) VALUES ('" + code + "', '" + name + "',1, '" + to_string(price) + "', 0,'" + to_string(type) + "')";
+    const char* item_str = item_q.c_str();
+    qstate = mysql_query(conn, item_str);
+
+    if (!qstate) {
+        cout << "New menu inserted!" << endl;
+
+        char choose;
+    ExitMenu:
+        cout << "Press any key to back main menu?=>";
+        cin >> choose;
+        menuStaff();
+
+    }
+    else {
+        cout << "Mysql error!" << endl;
+    }
+
+}
+
+void updateItem() {
+
+
+    checkManager();
+
+    system("cls");
+
+    // Variables
+    string code = "",
+        name = "",
+        price = "",
+        is_deleted = "",
+        type = "",
+        items[500],
+        new_name, new_price, new_type;
+
+    char choose;
+    int itemId;
+    bool HaveException = false;
+    bool NotInDatabase = false;
+    int indexForId = 0;
+
+    headerLogo();
+    cout << ">>        EDIT MENU      <<" << endl;
+
+    qstate = mysql_query(conn, "SELECT id,code,name,price FROM items WHERE is_deleted = 0");
+    if (!qstate) {
+        res = mysql_store_result(conn);
+
+        cout << "--------------------------------" << endl;
+        cout << "NO |\tCODE |\tPRICE |\tNAME" << endl;
+        cout << "--------------------------------" << endl;
+
+        while ((row = mysql_fetch_row(res))) {
+            cout << row[0] << " |\t" << row[1] << " |\tRM" << row[3] << " |\t" << row[2] << endl;
+            items[indexForId] = row[0];
+            indexForId++;
+        }
+
+        cout << "--------------------------------" << endl << endl;
+
+    }
+    else {
+        cout << "Query Execution Problem!" << mysql_errno(conn) << endl;
+    }
+
+    try {
+        cout << "Enter Item No: ";
+        cin >> itemId;
+        cout << endl;
+    }
+    catch (exception e) {
+        cout << "Please Enter a valid NUMBER." << endl;
+        HaveException = true;
+    }
+
+    if (HaveException == false)
+    {
+        stringstream streamid;
+        string strid;
+        streamid << itemId;
+        streamid >> strid;
+
+        for (int i = 0; i < indexForId; i++)
+        {
+            if (strid != items[i]) {
+                NotInDatabase = true;
+            }
+            else {
+                NotInDatabase = false;
+                break;
+            }
+        }
+
+        if (NotInDatabase == false) {
+
+            string findbyid_query = "SELECT id,code,name,price,type FROM items WHERE id='" + strid + "' AND is_deleted=0";
+            const char* qi = findbyid_query.c_str();
+            qstate = mysql_query(conn, qi);
+
+            if (!qstate) {
+                res = mysql_store_result(conn);
+                while ((row = mysql_fetch_row(res))) {
+                    code = row[1];
+                    name = row[2];
+                    price = row[3];
+                    type = row[4];
+                }
+            }
+            else {
+                cout << "Query Execution Problem!" << mysql_errno(conn) << endl;
+            }
+
+            cin.ignore(1, '\n');
+
+            cout << "Enter Name (Enter 'xn' to not change): ";
+            getline(cin, new_name);
+            if (new_name == "xn") {
+                new_name = name;
+            }
+
+            cout << "Enter Price (Enter 'xn' to not change): ";
+            getline(cin, new_price);
+            if (type == "xn") {
+                new_price = price;
+            }
+
+            cout << "Enter Type:" << endl;
+            cout << "1 => FOOD" << endl;
+            cout << "2 => DRINK" << endl;
+            cout << "xn => Not change" << endl;
+            cout << "Type :";
+
+            getline(cin, new_type);
+            if (type == "xn") {
+                new_type = type;
+            }
+
+            string update_query = "UPDATE items SET name='" + new_name + "', price='" + new_price + "',type='" + new_type + "' WHERE id='" + strid + "'";
+            const char* qu = update_query.c_str();
+            qstate = mysql_query(conn, qu);
+
+            if (!qstate) {
+                cout << endl << "Successfully Saved In Database." << endl;
+            }
+            else {
+                cout << "Failed To Update!" << mysql_errno(conn) << endl;
+            }
+
+        }
+        else {
+            cout << "Item Not Found in database." << endl;
+        }
+    }
+
+    endMenuStaff();
+
+
+}
+
+void viewMonthlySale() {
+
+    checkManager();
     //max day in a year
-    int ttl_day_in_month[12] = { 31, 27, 31, 30, 31, 30, 31, 30, 30, 31, 30, 31 },
-        month,
-        year,
-        day = 1;
+    int year,
+        month = 1;
 
     headerLogo();
 
-    cout << ">>  Daily Sale Report <<" << endl << endl;
+    cout << ">>  Monthly Sale Report <<" << endl << endl;
 
     
     do {
@@ -880,21 +905,15 @@ void viewDailySale() {
 
     } while (year < 1990 || year > 2020);
 
-    do {
-        cout << "Please Enter Month(1-12). Month > :";
-        cin >> month;
-
-    } while (month < 1 || month > 12);
-
     string date_str[31];
-    float daily_sale[31] = {0.00};
-    //loop until max no of days in month
-    while (day <= ttl_day_in_month[month]){
+    float monthly_sale[12] = {0.00};
 
-        string dt = to_string(year) + "-" + to_string(month) + "-" + to_string(day) + "";
+    while (month <= 12){
+
+        string dt = to_string(year) + "-" + to_string(month);
 
 
-        string daily_sale_str = "SELECT created_at,sum(price) as total FROM orders as o WHERE DATE(created_at) = '"+dt+"' group by day(o.created_at);";
+        string daily_sale_str = "select created_at,sum(after_discount) from orders where YEAR(created_at) = '"+to_string(year)+"' AND MONTH(created_at) = '"+to_string(month)+"' group by month(created_at);";
         const char* daily_sale_q = daily_sale_str.c_str();
         mysql_query(conn, daily_sale_q);
         res = mysql_store_result(conn);
@@ -903,21 +922,21 @@ void viewDailySale() {
 
         if (ttlRow > 0) {
             row = mysql_fetch_row(res);
-            daily_sale[day] = stof(row[1]);
+            monthly_sale[month] = stof(row[1]);
         } else {
-            daily_sale[day] = stof("0");
+            monthly_sale[month] = stof("0");
         }
 
-        date_str[day] = dt;
-        day++;
+        date_str[month] = dt;
+        month++;
 
     }
 
     //reuse var
-    day = 1;
+    month = 1;
 
     headerLogo();
-    cout << "DAILY SALE REPORT FOR " + to_string(year) + "-" + to_string(month) << endl << endl;
+    cout << "MONTHLY SALE REPORT FOR " + to_string(year) << endl << endl;
 
     TextTable t('-', '|', '+');
 
@@ -925,12 +944,12 @@ void viewDailySale() {
     t.add("TOTAL SALE");
     t.endOfRow();
 
-    while (day <= ttl_day_in_month[month]){
+    while (month <= 12){
        
-        t.add(date_str[day]);
-        t.add("RM"+to_string(daily_sale[day]));
+        t.add(date_str[month]);
+        t.add("RM "+to_string(monthly_sale[month]));
         t.endOfRow();
-        day++;
+        month++;
     }
 
     t.setAlignment(2, TextTable::Alignment::RIGHT);
@@ -940,6 +959,8 @@ void viewDailySale() {
 }
 
 void addStaff() {
+
+    checkManager();
 
     string username, password,is_admin = "0";
     char selection;
@@ -998,6 +1019,9 @@ void addStaff() {
 }
 
 void viewStaff() {
+
+
+    checkManager();
 
     system("cls");
 
@@ -1179,6 +1203,7 @@ void viewStaff() {
 
 void setting() {
 
+    checkManager();
     headerLogo();
 
     mysql_query(conn, "SELECT * FROM settings");
@@ -1289,15 +1314,11 @@ void endMenuStaff() {
 
     char choose;
 ExitMenu:
-    cout << "Press 'm' to Menu, 'e' to edit another item and any other key to Exit: ";
+    cout << "Press 'm' to Menu and any other key to Exit: ";
     cin >> choose;
     if (choose == 'm' || choose == 'M') {
         menuStaff();
-    }
-    else if (choose == 'e' || choose == 'E') {
-        updateItem();
-    }
-    else {
+    }else {
         main();
     }
 }
@@ -1308,4 +1329,30 @@ void headerLogo() {
     cout << endl << "===================================" << endl;
     cout << "|| QAYYUM MAMAK STYLE RESTAURANT ||" << endl;
     cout << "===================================" << endl << endl;
+}
+
+void checkManager() {
+
+    string x; 
+
+    if (!is_manager) {
+        cout << "Ops! Not allowed!. Enter any key to continue.";
+        cin >> x;
+        main();
+    }
+}
+
+void logout() {
+
+    string selection;
+    cout << "Are you sure want to logout? (Y/y) or (N/n). =>";
+    cin >> selection;
+
+    if (selection == "y" || selection == "Y") {
+        is_manager = false;
+        main();
+    }
+    else {
+        menuStaff();
+    }
 }
